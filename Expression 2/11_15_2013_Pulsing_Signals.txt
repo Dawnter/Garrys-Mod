@@ -1,0 +1,51 @@
+@name Pulsing Signals
+@inputs Pulse
+@outputs Signal
+@persist PulseLoop
+
+#################################################################################
+# Description: This will pulse a signal out of its output in a interval
+# Created On Nov 15, 2013
+# By Dark_Gunner
+#
+# Pulse= when activicatd the timer will start counting
+# Signal= when the timer interval is reached  it will give a output of 1
+# PulseLoop= This will prevent a loop of timers starting overlapping each other
+#
+#################################################################################
+# Notes:
+# ~The Symbol ! means that is it is inverse(opposite) of the output given
+# ~The Symbol & means AND , which means if A and B are true it will give output true
+# ~The Symbol @persist is used to defining a Variables
+#################################################################################
+
+
+
+if (Pulse & !PulseLoop) { #Note: A & B is Pulse & PulseLoop... PulseLoop has a Inverse ! Symbol
+    
+    #Note: function timer(String Address, miliseconds delay) 1000 milisecond = 1 second
+    #Note: "" means String. String is a type of Text Message in coding
+    #Note: In this example String is used to name a timer
+    timer("Pulse",5000)
+    
+    #Note: This will tell PulseLoop that it has become true therefore !PulseLoop false in return A(True) & !B(False) = False because of inverse ! symbol
+    PulseLoop= 1
+}
+
+
+if (clk("Pulse")) { #Note: clk(string address) will pulse at this address once delay is over
+    
+    #Note: Signal is true!
+    Signal= 1
+    
+    #Note: PulseLoop will become 0 making it able to Send another timer to clk(String Address)
+    PulseLoop= 0
+    #Note: Used to turn off the Signal back to 0 in 100 Miliseconds
+    timer("PulseOff",100)
+    
+} 
+elseif (clk("PulseOff")) { #Note: refering to if then what if else...
+    
+    #Note: Signal is now 0
+    Signal= 0
+}
