@@ -1,0 +1,122 @@
+@name KeypadHackDetector
+# Edit Version 4 Beta October 7,2013
+# By Dark_Gunner
+# List of People who owns it
+# 1 Clutch
+# 2 AuzreKite
+# 3 Zephyr
+@inputs FadeActive
+@persist [ColorBase ColorEntity]:vector
+@persist [Alarm AlarmLast]:entity [HackToolTimer HackToolName]:array
+@persist Stoped StopedLast HackToolScanner Found:entity HackSeconds
+@model models/cheeze/pcb2/pcb1.mdl
+interval(100)
+
+Base = entity():isWeldedTo()
+Location = "Temple" # THE LOCATION
+
+
+#if (Base:model() == "models/props_lab/keypad.mdl")
+if (Base:model())
+{
+if (first()) {timer("TickA",500), entity():setMass(0)}
+
+if (clk("TickB")) {timer("TickA",300), ColorEntity = vec(0,255,0)}
+if (clk("TickA")) {timer("TickB",500), ColorEntity = vec(0,0,0)}
+
+findByClass("player")
+if (Found:aimEntity()!=Base) {Found = findClosest(Base:pos())}
+
+if (Found:aimEntity() == Base)
+{
+    #hint(Found:weapon():type(),10)
+    # Type of tool hacks name
+    HackToolName[1,string] = "keypad_cracker"
+    HackToolName[2,string] = "pro_keypad_cracker"
+    HackToolName[3,string] = "pro_lockpick"
+    HackToolName[4,string] = "lockpick"
+    # Seconds for the keypad or door to be hacked into
+    HackToolTimer[1,number] = 30
+    HackToolTimer[2,number] = 15
+    HackToolTimer[3,number] = 10
+    HackToolTimer[4,number] = 30
+    if (Found:weapon():type()!=HackToolName[HackToolScanner,string]) {HackToolScanner++}
+    if (HackToolScanner > 10) {HackToolScanner=0}
+    
+    if (Found:weapon():type() == HackToolName[HackToolScanner,string])
+    {
+        ColorBase = vec(255,0,0)
+        if (Found:keyAttack1() | Found:keyAttack2())
+        {
+            Alarm = Found
+            if (Alarm & !AlarmLast)
+            {
+                #timer("ResetAlarm",1000)
+                Base:soundPlay(1,0,"ambient/alarms/doomsday_lift_alarm.wav")
+                soundVolume(1,100)
+                print(round(curtime())+"# "+Found:name() + " Is " + HackToolName[HackToolScanner,string] + " Your " + Location + "!")
+                ColorBase = vec(255,0,0)
+                AlarmLast = Alarm
+                timer("ResetMessage",1500)
+                owner():soundPlay(3,0,"ambient/levels/outland/basealarmloop.wav")
+            }
+        }
+    }
+    else {ColorBase = vec(0,255,0), Alarm = Alarm, timer("ResetAlarm",1000)}
+    holoDelete(1)
+    holoDelete(2)
+}
+else
+{
+    ColorBase = vec(0,0,255)
+    if (!FadeActive) {
+        if (Base:model() == "models/props_lab/keypad.mdl") {
+            holoCreate(1,Base:pos(),vec(0.8,0.4,0.3),entity():angles())
+            holoMaterial(1,"phoenix_storms/metal")
+        } else {
+            holoCreate(2,Base:pos(),Base:boxSize()*0.08,Base:angles())
+            holoMaterial(2,"phoenix_storms/metal")
+        }
+    }
+    Stop = 1
+    Stoped = 1
+}
+if (clk("ResetAlarm") | Stop)
+{
+    Alarm = noentity()
+    soundStop(1)
+    Stop = 0
+    HackSeconds=0
+}
+
+if (AlarmLast:aimEntity() != Base & AlarmLast & Stoped)
+{
+print(round(curtime())+"# "+AlarmLast:name() + " Stoped " + HackToolName[HackToolScanner,string] + " Your " + Location + "!")
+AlarmLast = noentity()
+Stoped = 0
+soundStop(3)
+}
+
+#Repeats Alarm Message
+if (clk("ResetMessage") & ColorBase==vec(255,0,0)) {
+    if (HackToolTimer[HackToolScanner,number]-HackSeconds) {
+        HackSeconds++
+        hint(Location+" Time Left: "+(HackToolTimer[HackToolScanner,number]-HackSeconds),1)
+    }
+    #hint(Found:name() + " Is " + HackToolName[HackToolScanner,string] + " Your " + Location + "!",100)
+    #hint(Location+" Time Left: "+(HackToolTimer[HackToolScanner,number]-HackSeconds+1),100)
+    Base:soundPlay(2,0,"ambient/alarms/warningbell1.wav")
+    soundPitch(2,200)
+    soundVolume(2,100)
+    timer("ResetMessage",1000)
+}
+
+if (FadeActive) { holoDelete(1), holoDelete(2), 
+    if (!HackSeconds&clk("ResetMessage")) {print(round(curtime())+"# "+Location+" Fading Door has opened!")}
+}
+
+Base:setColor(ColorBase)
+entity():setColor(ColorEntity)
+if (ColorEntity == vec(0,255,0)) {Alpha = 255} else {Alpha = 0}
+entity():setAlpha(Alpha)
+} else {hint("Error, Place this on a keypad.",100), selfDestruct()}

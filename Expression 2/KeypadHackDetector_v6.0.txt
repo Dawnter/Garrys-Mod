@@ -1,0 +1,284 @@
+@name KeypadHackDetector v6.0 Beta "Logey Edition" 280L
+# Edit Version 6.0 Beta Dec 15,2014
+# By Dark_Gunner
+# Notes:
+# 1. Fade Alerts only work when FadingDoor:wirelink is Wired Version4.1&Above
+# 2. Wire the FadingDoor:wirelink and Logs:wirelink if using Buddy Feature Version4.5&Above
+# 3. Fading Door MUST BE TOGGLED for Special Use Version 5.2&Above <<<<<<<<< IMPORTANT NOTE
+# List of People who owns it
+# 
+
+@inputs [FadingDoor Logs]:wirelink Child:array
+@outputs Parent:array 
+@persist [ColorBase ColorEntity]:vector
+@persist [Alarm AlarmLast]:entity [HackToolTimer HackToolName]:array HackLogs:array HackLogRow LogsFound:entity ShareDoor:array LogsLastPush AddPlayer
+@persist Stoped StopedLast HackToolScanner Found:entity HackSeconds LogsScan LogsScanIndex InternalClockTick InternalClock:string Beeper ShareDoorCycle
+@persist ChatChange:string ChatScan RaidVerifyScan LegalRaid Fade Pulser ParentSlot ChildSlot
+@model models/cheeze/pcb2/pcb1.mdl
+interval(30)
+runOnChat(10)
+
+
+
+Location = "Home" # THE LOCATION
+SecondsFade = 3 # Seconds intil the door closes at fading door, 3 is default
+RaidTimeoutMin = 20 # How long till raid is timed out
+
+
+if(!Alarm){if (Pulser<4) {Pulser++} else {Pulser=0}} #Ticking Heart Beat
+#Switches Personality, Main is The E2 welded on
+BaseDoor=FadingDoor:entity()
+if (Pulser<2&BaseDoor&Found:pos():distance(entity():pos())<200) {Base = BaseDoor} else {Base = entity():isWeldedTo()}
+# Console Screen Entity Base
+LogsBase = Logs:entity()
+FadeActive=FadingDoor["FadeActive",number]
+FadingDoor["Fade",number]=Fade
+
+# Appears Hologram on Base Door if further way
+if (Found:pos():distance(entity():pos())>200&!FadeActive&BaseDoor) {holoCreate(2,BaseDoor:pos(),BaseDoor:boxSize()*0.08,BaseDoor:angles()),holoMaterial(2,"phoenix_storms/metal")}
+
+
+#if (Base:model() == "models/props_lab/keypad.mdl")
+if (Base:model())
+{
+if (first()) {timer("TickA",500), entity():setMass(0),HackLogs[HackLogRow,string] = "00000"+"# Ready!", HackLogRow++}
+
+
+if (clk("TickB")) {timer("TickA",300), ColorEntity = vec(0,255,0)}
+if (clk("TickA")) {timer("TickB",500), ColorEntity = vec(0,0,0), timer("InternalClock",1000)}
+if (clk("InternalClock")) {
+    if (InternalClockTick < 10000000) {InternalClockTick++}
+    if (InternalClockTick < 10) {InternalClock="0000"+(InternalClockTick:toString())}
+    elseif (InternalClockTick < 100) {InternalClock="000"+InternalClockTick:toString()}
+    elseif (InternalClockTick < 1000) {InternalClock="00"+InternalClockTick:toString()}
+    elseif (InternalClockTick < 10000) {InternalClock="0"+InternalClockTick:toString()}
+    elseif (InternalClockTick < 100000) {InternalClock=InternalClockTick:toString()}
+    elseif (InternalClockTick < 1000000) {InternalClock="Error"}
+}
+
+findByClass("player")
+if (Found:aimEntity()!=Base) {Found = findClosest(Base:pos())}
+if (LogsFound:aimEntity() !=LogsBase) {LogsFound = findClosest(LogsBase:pos())}
+
+#Legal Raid Advert... Detection
+if (lastSaid():length()<50) {
+    while (ChatScan<lastSaid():length()&lastSaid():sub(0,6):lower()=="/advert":sub(0,6):lower()) {
+        ChatScan++
+        if (lastSaid():sub(ChatScan,ChatScan+3):lower()=="raid":lower()&chatClk()) {
+            HackLogs[HackLogRow,string] = InternalClock+"# Raider: "+lastSpoke():steamID()
+            HackLogRow++
+            ChatScan=lastSaid():length()+1
+        }
+    }
+}
+if (ChatScan&chatClk()) {ChatScan=0}
+#Scan For Expire Raids
+if (HackLogs[RaidVerifyScan,string]:sub(8,14)=="Raider:"&HackLogs[RaidVerifyScan,string]:sub(1,5):toNumber()+(60*RaidTimeoutMin)<InternalClockTick) {
+    HackLogs[RaidVerifyScan,string] = InternalClock+"# Expire: "+HackLogs[RaidVerifyScan,string]:sub(22,HackLogs[RaidVerifyScan,string]:length())
+}
+if (RaidVerifyScan<20) {RaidVerifyScan++} else {RaidVerifyScan=0}
+
+
+# Parent and Child Stuff Updates 
+AddPlayer= Child[0,string]:toNumber()+ParentSlot
+Parent[0,string]=toString(AddPlayer)
+Parent[AddPlayer+1,string]= Child[AddPlayer+1,string]
+Parent[AddPlayer,string]= ShareDoor[AddPlayer-1,string]
+ShareDoor[AddPlayer,string]= Child[AddPlayer,string]
+if(AddPlayer!=ChildSlot&AddPlayer-1) {
+    Parent=Child
+    HackLogs[HackLogRow,string] = InternalClock+"# Add#"+(AddPlayer-1)+" From the Parent"
+    HackLogRow++
+    HackLogs[HackLogRow,string] = InternalClock+"# "+ShareDoor[AddPlayer,string]
+    HackLogRow++
+    ChildSlot= AddPlayer
+}
+
+
+if (Found:aimEntity() == Base)
+{
+    #hint(Found:weapon():type(),10)
+    # Type of tool hacks name
+    HackToolName[1,string] = "keypad_cracker"
+    HackToolName[2,string] = "pro_keypad_cracker"
+    HackToolName[3,string] = "pro_lockpick"
+    HackToolName[4,string] = "lockpick"
+    HackToolName[5,string] = "door_ram"
+    HackToolName[6,string] = "prolockpick"
+    # Seconds for the keypad or door to be hacked into
+    HackToolTimer[1,number] = 30
+    HackToolTimer[2,number] = 15
+    HackToolTimer[3,number] = 10
+    HackToolTimer[4,number] = 30
+    HackToolTimer[5,number] = 1
+    HackToolTimer[6,number] = 8
+    if (Found:weapon():type()!=HackToolName[HackToolScanner,string]) {HackToolScanner++}
+    if (HackToolScanner > 6) {HackToolScanner=0} #Adjust how much tools are there 
+    
+    # Adds Player to Door Friends
+    if (LogsFound:aimEntity()==LogsBase&LogsFound==owner()&LogsFound:keyUse()&!LogsLastPush&!LogsFound:keyAttack1()&!LogsFound:keyAttack2()) {
+        ChildSlot= AddPlayer+1
+        ParentSlot++
+        ShareDoor[AddPlayer,string]=Found:steamID()
+        if(AddPlayer) {
+            HackLogs[HackLogRow,string] = InternalClock+"# Add#"+AddPlayer+" "+Found:name():sub(0,16)
+            HackLogRow++
+            HackLogs[HackLogRow,string] = InternalClock+"# "+ShareDoor[AddPlayer,string]
+            HackLogRow++
+            LogsLastPush=1
+        }
+    }
+    ShareDoorCycle++
+    if(ShareDoorCycle>AddPlayer+1){ShareDoorCycle=0}
+    
+    #Legal Raid Inspection Verify
+    if (HackLogs[RaidVerifyScan,string]:sub(8,14)=="Raider:"
+       &HackLogs[RaidVerifyScan,string]:sub(16,HackLogs[RaidVerifyScan,string]:length())==Found:steamID()
+    ) {LegalRaid++}
+    #hint(toString(LegalRaid),10)
+    
+    
+    if (Found:weapon():type() == HackToolName[HackToolScanner,string])
+    {
+        ColorBase = vec(255,0,0)
+        if (Found:keyAttack1() | Found:keyAttack2())
+        {
+            Alarm = Found
+            if (Alarm & !AlarmLast)
+            { 
+                LegalRaid=0
+                #timer("ResetAlarm",1000)
+                Base:soundPlay(1,0,"ambient/alarms/doomsday_lift_alarm.wav")
+                soundVolume(1,100)
+                soundPitch(1,115)
+                print(InternalClock+"# "+Found:name() + " Is " + HackToolName[HackToolScanner,string] + " Your " + Location + "!")
+                ColorBase = vec(255,0,0)
+                AlarmLast = Alarm
+                timer("ResetMessage",1500)
+                owner():soundPlay(3,0,"ambient/levels/outland/basealarmloop.wav")
+                HackLogs[HackLogRow,string] = InternalClock+"# "+Found:name():sub(0,10)+" "+ HackToolName[HackToolScanner,string]+"!"
+                HackLogRow++
+            }
+        }
+    }
+    else {if(!Beeper){ColorBase = vec(0,255,0)}, Alarm = Alarm, timer("ResetAlarm",1000)}
+    if (BaseDoor!=Base) {holoDelete(1)} else {holoDelete(2)}
+    if (Found==owner()) {Beeper=0}
+    
+    #Owner Pushes E to open Fading Door
+    if (!Found:keyAttack1()&(Found==owner()|Found==Base:owner()|ShareDoor[ShareDoorCycle,string]==Found:steamID())&Found:keyUse())
+    {Fade=1, timer("DoorFade",1000*SecondsFade)}
+}
+else
+{
+    if(BaseDoor==Base) {LogsLastPush=0}
+    ColorBase = vec(0,0,255)
+    if (!FadeActive) {
+        if (Base:model() == "models/props_lab/keypad.mdl") {
+            holoCreate(1,Base:pos(),vec(0.9,0.5,0.3),entity():angles())
+            holoMaterial(1,"phoenix_storms/metal")
+        } else {
+            holoCreate(2,Base:pos(),Base:boxSize()*0.08,Base:angles())
+            holoMaterial(2,"phoenix_storms/metal")
+        }
+    }
+    Stop = 1
+    Stoped = 1
+}
+# Owner Pushes E Fade Door Close TIme
+if (clk("DoorFade")) {Fade=0,timer("DoorFadePulse",0)}
+if (clk("DoorFadePulse")) {Fade=1,timer("DoorFadePulse2",0)}
+if (clk("DoorFadePulse2")) {Fade=0}
+
+if (clk("ResetAlarm") | Stop)
+{
+    Alarm = noentity()
+    soundStop(1)
+    Stop = 0
+    HackSeconds=0
+}
+
+if (AlarmLast:aimEntity() != Base & AlarmLast & Stoped)
+{
+print(InternalClock+"# "+AlarmLast:name() + " Stoped " + HackToolName[HackToolScanner,string] + " Your " + Location + "!")
+AlarmLast = noentity()
+Stoped = 0
+soundStop(3)
+}
+
+#Repeats Alarm Message
+if (clk("ResetMessage") & ColorBase==vec(255,0,0)) {
+    if (HackToolTimer[HackToolScanner,number]-HackSeconds) {
+        HackSeconds++
+        hint(Location+" Time Left: "+(HackToolTimer[HackToolScanner,number]-HackSeconds),1)
+    } 
+    #hint(Found:name() + " Is " + HackToolName[HackToolScanner,string] + " Your " + Location + "!",100)
+    #hint(Location+" Time Left: "+(HackToolTimer[HackToolScanner,number]-HackSeconds+1),100)
+    Base:soundPlay(2,0,"ambient/alarms/warningbell1.wav")
+    soundPitch(2,200)
+    soundVolume(2,100)
+    timer("ResetMessage",1000)
+}
+
+if (FadeActive) { holoDelete(1), holoDelete(2), 
+    if (!HackSeconds&clk("ResetMessage")) {
+        print(InternalClock+"# "+Location+" Fading Door has opened!")
+        #HackLogs[HackLogRow,string] = InternalClock+"# "+Found:name():sub(0,10)+" Broke in! "
+        #HackLogRow++
+        if (Found:name():length() > 10) {
+            HackLogs[HackLogRow,string] = InternalClock+"# "+Found:name()
+            HackLogRow++
+        }
+        FadeActiveAlarm=1
+        #Check if raid is legit
+        if (!LegalRaid) {timer("DoorFade",0),HackLogs[HackLogRow,string] = InternalClock+"# "+" Illegal Raid! ",HackLogRow++,print(InternalClock+"# Illegal Raid!")}
+        else {if(BaseDoor!=Base){timer("DoorFade",2000*SecondsFade)},HackLogs[HackLogRow,string] = InternalClock+"# Legal Raid",HackLogRow++,print(InternalClock+"# Legal Raid!")}
+    }
+    if (FadeActiveAlarm) {Base:soundPlay(4,0,"ambient/alarms/alarm_citizen_loop1.wav"),Beeper=1}
+} else {FadeActiveAlarm=0,soundStop(4),if(Beeper){timer("Beeper",3000), ColorBase = vec(255,0,255)}}
+if (clk("Beeper")) {Base:soundPlay(5,0,"common/warning.wav")}
+
+
+#Plays the logs display's
+if (HackLogRow > 16) {HackLogRow=0,HackLogs[HackLogRow,string] = InternalClock+"# Clean Sheet",HackLogRow++}
+if (Logs) {LogsScan++} else {LogsScan=0}
+if (LogsScan > 60) {LogsScan=0,Logs:writeString(" ":repeat(900),0,0)}
+Logs:writeString("--Cur:00000"+"--"+Location+"-ops:"+ops(),0,0)
+#[if (InternalClock < 10) {Logs:writeString(InternalClock:toString(),10,0)}
+elseif (InternalClock < 100) {Logs:writeString(InternalClock:toString(),9,0)}
+elseif (InternalClock < 1000) {Logs:writeString(InternalClock:toString(),8,0)}
+elseif (InternalClock < 10000) {Logs:writeString(InternalClock:toString(),7,0)}
+elseif (InternalClock < 100000) {Logs:writeString(InternalClock:toString(),6,0)}
+]#
+if (InternalClockTick > 1000000) {Logs:writeString("Exceed",6,0)} else {Logs:writeString(InternalClock,6,0)}
+if (!HackLogs[LogsScan,string]) {Logs:writeString("*No Data Recovered",0,LogsScan+1)}
+else {
+    Logs:writeString("*"+HackLogs[LogsScan,string],0,LogsScan+1)
+    Logs:writeString("00000",1,LogsScan+1)
+    HackLogStamp=HackLogs[LogsScan,string]:sub(0,5):toNumber()
+    if (InternalClockTick-HackLogStamp < 10) {TimeStampColum=5}
+    elseif (InternalClockTick-HackLogStamp < 100) {TimeStampColum=4}
+    elseif (InternalClockTick-HackLogStamp < 1000) {TimeStampColum=3}
+    elseif (InternalClockTick-HackLogStamp < 10000) {TimeStampColum=2}
+    elseif (InternalClockTick-HackLogStamp < 100000) {TimeStampColum=1}
+    if (InternalClockTick-HackLogStamp < 100000) {Logs:writeString(toString(InternalClockTick-HackLogStamp),TimeStampColum,LogsScan+1)}
+    elseif (InternalClockTick-HackLogStamp > 200000) {Logs:writeString("E"+toString(HackLogStamp),1,LogsScan+1)}
+    else {Logs:writeString("Error",1,LogsScan+1)}
+}
+
+Base:setColor(ColorBase)
+entity():setColor(ColorEntity)
+if (ColorEntity == vec(0,255,0)) {Alpha = 255} else {Alpha = 0}
+entity():setAlpha(Alpha)
+} else {hint("Error, Place this on a keypad.",100), selfDestruct()}
+
+
+################################################################################################
+#Update Log
+#4.1 Console Screen was added Oct 3, 2013
+#4.5 Sharing door was added/Fixed to STEAM ID Sharing door Nov 2013
+#5.1 only one e2 was needed unlike before (Switching Between Base positions) Nov 12,2013
+#5.3 Fixed Flickering Hologram Issues, Maybe Fixed tick quota exceded (dying e2) Nov 14 ,2013
+#5.4 Added Parent/Child ShareDoor Function Nov 15 ,2013
+#6.0 Fix the chip Dec 15, 2014
+################################################################################################

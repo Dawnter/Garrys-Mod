@@ -1,0 +1,39 @@
+@name Grassy Field 1.0v
+@persist Cycle
+#Created 2/28/2014
+#LastEdit 2/28/2014
+interval(0)
+
+Base= entity()
+Range= 100
+Amount= 10
+
+
+if(first()) {
+    for(Create= 0, Amount) {
+        holoCreate(Create)
+        holoScale(Create, vec(1,1,1)*2)
+        holoModel(Create, "plane")
+        holoDisableShading(Create, 0)
+        RandomVec= vec(random(-Range,Range),random(-Range,Range),0)+Base:pos()
+        #holoPos(Create, RandomVec)
+    }   
+}
+
+RandomVec= vec(random(-Range,Range),random(-Range,Range),0)+Base:pos()
+holoPos(Cycle, RandomVec)
+
+
+
+
+findByClass("player")
+Target= findClosest(holoEntity(Cycle):pos())
+
+
+Bearing= -bearing(Target:pos(), ang(), Base:pos())
+Elevation= -elevation(Target:pos(), ang(), Base:pos())
+Ang= ang(Elevation, Bearing, 0) + ang(-30, 0, 0)
+holoAng(Cycle, Ang)
+
+
+if(Cycle>Amount) {Cycle= 0} else {Cycle++}

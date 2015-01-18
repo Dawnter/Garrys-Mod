@@ -1,0 +1,47 @@
+@name Blind Camera v1.5 32L
+@persist Target:entity InternalClock Search:array Scan Total NextScan Finished
+#Edit Date: December 11, 2013
+#Made By Dark_Gunner
+interval(100)
+runOnChat(5)
+DeleteWord="camera" #Self Destruct Phrase
+Distance=1000       #Distance of Blocking
+Search[0,string]="gmod_rtcameraprop"
+Search[1,string]="gmod_cameraprop"
+TotalAll=findByClass(Search[NextScan,string])
+Target=findResult(Scan)
+if (TotalAll>=Scan) {Scan++} elseif (NextScan<2) {NextScan++,Scan=0} else {NextScan=0,Scan=0,Finished=1}
+if (Target:pos():distance(entity():pos())<Distance) {TargetN=Target,Total++,if(!Finished){print(InternalClock+"# Camera "+Total+" Blocked! >>"+Search[NextScan,string])}}
+else {TargetN=entity()}
+
+if (first()) {print("0# Say '"+DeleteWord+"' to delete"),timer("TickA",100)}
+if (clk("TickA")) {timer("TickB",1000), entity():setColor(vec(0,0,255)),InternalClock++}
+if (clk("TickB")) {timer("TickA",1000), entity():setColor(vec())}
+
+ScanHolo= Scan+(NextScan*50)
+
+holoCreate(ScanHolo)
+holoPos(ScanHolo, TargetN:pos())
+holoAng(ScanHolo, TargetN:angles())
+holoScale(ScanHolo, TargetN:boxSize()*-0.12)
+holoColor(ScanHolo, vec())
+
+
+
+if ((lastSpoke()==owner()&chatClk()&lastSaid():lower()==DeleteWord)|duped()) 
+{selfDestruct(), if(Total){print(InternalClock+"# Blind Camera Deleted!")}else{print(InternalClock+"# Camera doesn't exist!")}}
+
+#################################################################
+#Update Log
+#1.0 November 30,2013
+#1.1 December 2,2013    Added rt Camera 21L
+#1.2 December 7,2013    Fix Everything & Howmany Covered 27L
+#1.3 December 8,2013    Added Multiple Camera BLocking 27L
+#1.4 December 11,2013   Fixed Issues Completely and Added Spawn Update 30L
+#1.5 January 12,2013    Fixed Flickering Between RT and Camera (LastUpdate) 32L
+#################################################################
+#Objective:  
+# A) Block all Camera's that spawn within the radius distance
+# B) Report the camera's that been blocked to player
+# C) Monitor for new camera spawning/changes to the camera's aka Live Camera Blocking
+#################################################################

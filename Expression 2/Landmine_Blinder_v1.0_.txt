@@ -1,0 +1,72 @@
+@name Landmine Blinder v1.0 72L
+@persist Target:entity Triggered Explosion
+#Last Edit: January 16, 2014
+#Made By Dark_Gunner
+interval(1)
+runOnTick(1)
+
+Timeout= 10
+
+Ranger= ranger(100)
+if (Ranger:entity():isPlayer()) {Target= Ranger:entity()}
+
+#first
+if (first()) {
+    holoCreate(0)
+    holoModel(0, "hq_dome")
+    holoScale(0, vec(1,1,1)*0.3)
+    holoColor(0, vec())
+}
+
+
+#Finds Target 
+if (Target) {
+    # One Call 
+    if (!Triggered) {
+        holoDelete(0)
+        soundPlay(1,0,"ambient/explosions/explode_2.wav")
+        timer("Fiddle", 1000)
+        timer("End", (1000*Timeout)-1000)
+        timer("Done", 1000*Timeout)
+        Triggered= 1
+    }
+    if (clk("Fiddle")) 
+    {soundPlay(2,0,"common/bugreporter_failed.wav")}
+    if (clk("End")) 
+    {soundPlay(0,0,"common/stuck2.wav")}
+    
+    # Blinding effect
+    holoCreate(1)
+    if (!Target:isCrouch()) {Crouch= vec(0,0,70)}
+    else {Crouch= vec(0,0,20)}
+    holoPos(1, Target:pos()+Crouch)
+    holoScale(1, vec(1,1,1)*-5)
+    holoColor(1, vec())
+    
+    
+    # Explosion Effect
+    if(Explosion<10) {
+        Explosion+=0.1
+        holoCreate(2)
+        holoModel(2, "hq_hdome_thin")
+        holoScale(2, vec(1,1,0.8)*Explosion)
+        holoMaterial(2, "models/props_lab/cornerunit_cloud")
+        
+        holoCreate(3)
+        holoModel(3, "hq_torus")
+        holoScale(3, vec(2,2,1)*Explosion)
+        holoMaterial(3, "phoenix_storms/pack2/redlight")
+        
+        holoCreate(4)
+        holoModel(4, "hq_hdome_thin")
+        holoScale(4, vec(1,1,0.1)*Explosion)
+        holoColor(4, vec())
+    }
+    else {holoDelete(2), holoDelete(3)}
+    
+    
+}
+
+if (clk("Done")) {
+    selfDestruct()
+}

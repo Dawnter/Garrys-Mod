@@ -1,0 +1,114 @@
+@name Aim Assist v2.2 103L
+@inputs UserExt:entity
+@persist Scan Color:vector Crouch User:entity Movement:vector 
+@persist Parent Next Share:array Add HoloSpawned
+#Last Edit: January 29, 2014
+#Made By Dark_Gunner
+interval(1)
+runOnTick(1)
+runOnChat(1)
+
+DistMax= 1000
+DeleteCmd= "assist"
+
+# Adding People
+Share[0, entity]= owner()
+if (chatClk(owner())&lastSaid():sub(0,4):lower()=="/add") {
+    if (owner():aimEntity():isPlayer()) {
+        Share[Add+1, entity]= owner():aimEntity()
+        print("Added Player "+Add+" : "+Share[Add+1, entity]:name())
+        Add++
+    }
+}
+# Cycle the Share
+User= Share[Next, entity]
+
+
+Offset= numPlayers()*Next
+
+
+# Scans for Targes
+findByClass("player")
+Target= findResult(Scan)
+Dist= Target:pos():distance(User:pos())
+
+#Parent when user is moving
+if (User:pos()!=Movement&!User:vehicle()) {Parent= 1} 
+else {Parent= 0, Movement= User:pos()}
+
+#Calculate Angle
+Bearing= -bearing(Target:pos(), ang(), User:pos())
+Elevation= -elevation(Target:pos(), ang(), User:pos())
+Ang= ang(Elevation, Bearing, 0) + ang(30, 0, 0)
+
+#Calculate Position
+if (User:isCrouch()) {
+    if (Parent) {Crouch= -5}
+    else {Crouch= 27}
+} 
+else {
+    if (Parent) {Crouch= 28}
+    else {Crouch= 60}
+}
+Pos= ((User:pos()-Target:pos())/1.1)+Target:pos()+vec(0,0,Crouch)
+
+
+#Find Certain Distance
+if (Dist<DistMax&Target&Target!=User) {
+    if (!holoEntity(Scan+Offset)) { #creates holograms when needed
+        holoCreate(Scan+Offset) #there is a delay when calling this
+        HoloSpawned++ # Added HoloSpawn
+        if(User==owner()) { #only owners
+            hint("+Attach: "+HoloSpawned+" "+Target:name(),5)
+        }
+    }
+    holoPos(Scan+Offset, Pos)
+    holoModel(Scan+Offset, "plane")
+    holoAng(Scan+Offset, Ang)
+    holoScale(Scan+Offset, vec(1, 1, 1)*0.1)
+    holoDisableShading(Scan+Offset, 1)
+    if (Parent) {holoParent(Scan+Offset, User:weapon())}
+    else {holoUnparent(Scan+Offset)}
+    # Color Type
+    if (!Target:isAlive()) {Color= vec()} # Dead Player (Black)
+    elseif(Target:weapon():type():sub(0,3)=="m9k") {Color= vec(255, 0, 0)}
+    elseif(Target:vehicle()) {Color= vec(255, 255, 0)}
+    elseif(Target:isAlive()) {Color= vec(0, 255, 255)}
+    else {Color= vec(0, 0, 0)}
+    holoColor(Scan+Offset, Color)
+    entity():setColor(Color)
+    Movement= User:pos()
+    
+}
+else {
+    if (holoEntity(Scan+Offset)) { # if Holo Exist
+        holoDelete(Scan+Offset)
+        HoloSpawned-- # Take Back HoloSpawned
+        if(User==owner()) { #Only Owners
+            #hint("-Detach: "+HoloSpawned+" "+Target:name(),5)
+        }
+    }
+}
+
+
+#Scanning System
+if (numPlayers()>Scan) {Scan++} else {Scan= 0, Next++}
+# sharing cycle reset
+if (Share:count()<Next) {Next=0}
+
+if (duped()|(chatClk(owner())&lastSaid():sub(0,DeleteCmd:length()):lower()==DeleteCmd)) {
+    if (duped()) {print("Forbidden Dup!")}
+    else {print("Aim Assist Removed!")}
+    selfDestruct()
+}
+
+####################################################
+#Update Logs
+# January 20, 2014    Created Code 50L
+# January 21-23, 2014 Improved Visual Effort & Modifable User
+# January 23, 2014    Moving Speed Improving 1.0v 70L
+# January 28, 2014    Multiple People Sharing 2.0v 
+# January 28, 2014    Improved Visual & Found Message 2.1v 95L
+# January 29, 2014    Added Hologram Spawn Count & Delete cmd 2.2v 
+####################################################
+

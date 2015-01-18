@@ -1,0 +1,81 @@
+@name Aim Assist v1.0 50L
+@inputs UserExt:entity
+@persist Scan Color:vector Crouch User:entity Movement:vector Parent
+#Last Edit: January 21, 2014
+#Made By Dark_Gunner
+#For Hanyuu :)
+interval(1)
+runOnTick(1)
+
+
+if (!UserExt) {User= owner()}
+else {User= UserExt}
+DistMax= 1000
+
+findExcludeEntity(User)
+findByClass("player")
+Target= findResult(Scan)
+Dist= Target:pos():distance(User:pos())
+
+#Parent when user is moving
+if (User:pos()!=Movement&!User:vehicle()) {Parent= 1} 
+else {Parent= 0, Movement= User:pos()}
+
+#Calculate Angle
+Bearing= -bearing(Target:pos(), ang(), User:pos())
+Elevation= -elevation(Target:pos(), ang(), User:pos())
+Ang= ang(Elevation, Bearing, 0) + ang(30, 0, 0)
+
+#Calculate Position
+if (User:isCrouch()) {
+    if (Parent) {Crouch= -5}
+    else {Crouch= 27}
+} 
+else {
+    if (Parent) {Crouch= 28}
+    else {Crouch= 60}
+}
+Pos= ((User:pos()-Target:pos())/1.1)+Target:pos()+vec(0,0,Crouch)
+
+
+#Find Certain Distance
+if (Dist<DistMax&Target) {
+    holoCreate(Scan)
+    holoPos(Scan, Pos)
+    holoModel(Scan, "plane")
+    holoAng(Scan, Ang)
+    holoScale(Scan, vec(1, 1, 1)*0.1)
+    holoDisableShading(Scan, 1)
+    if (Parent) {holoParent(Scan, User:weapon())}
+    else {holoUnparent(Scan)}
+    # Color Type
+    if (!Target:isAlive()) {Color= vec()} # Dead Player (Black)
+    elseif(Target:weapon():type():sub(0,3)=="m9k") {Color= vec(255, 0, 0)}
+    elseif(Target:vehicle()) {Color= vec(255, 255, 0)}
+    elseif(Target:isAlive()) {Color= vec(0, 255, 255)}
+    else {Color= vec(0, 0, 0)}
+    holoColor(Scan, Color)
+    entity():setColor(Color)
+    Movement= User:pos()
+    
+}
+else {
+    holoDelete(Scan)
+}
+
+
+#Scanning System
+if (numPlayers()>Scan) {Scan++} else {Scan= 0}
+
+if (duped()) {
+    selfDestruct()
+    print("Forbidden Dup!")
+}
+
+####################################################
+#Update Logs
+# January 20, 2014    Created Code 50L
+# January 21-23, 2014 Improved Visual Effort & Modifable User
+# January 23, 2014    Moving Speed Improving 
+####################################################
+

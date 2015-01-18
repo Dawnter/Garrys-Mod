@@ -1,0 +1,161 @@
+@name Position Database r0
+#Created on December 17, 2014
+@inputs HDD:wirelink DataIndex
+@outputs Vector:vector Size
+@persist HoloMapping Skim HideChat Permanently
+interval(100)
+runOnChat(1)
+
+#Library
+##include "Lib/Dupe_Proof_Lib"
+
+KeywordCur= "!nowent"               #Display Current Database Size
+KeywordAdd= "!addent"               #Add Vector Position to Database
+KeywordUndo= "!undoent"             #Undo Vector Position to Database
+KeywordHolo= "!holoent"             #Toggle Display Hologram Database Mapping
+KeywordPermanently= "!freeze"       #Permanently stop Users Command Command
+User= owner()                       #The User
+AimPos= User:aimPos()               #The Position
+UserSaid= User:lastSaid():lower()   #User last said
+
+function number hddSize()
+{
+    ArrayOutput= HDD["Memory", array] #Read Data
+    return ArrayOutput[0, number] #returns Size
+}
+
+function hddWrite(Data:vector)
+{
+    if (HDD) {
+        #Update Current Array Information
+        ArrayInput= HDD["Memory", array]
+        
+        #Add An Array
+        ArrayInput[0, number] =  ArrayInput[0, number] +1
+        ArrayInput[ArrayInput[0, number], vector]= Data
+        
+        # Write
+        HDD["AllowWrite", number]= 0
+        HDD["AllowWrite", number]= 1
+        HDD["Data", array]= ArrayInput
+        
+        # Read
+        ArrayOutput= HDD["Memory", array]
+        
+        # Print
+        print("Size#"+(ArrayOutput[0, number])+"-Database<<"+ArrayOutput[ArrayOutput[0, number], vector])
+    } else {
+        print("Cannot Write HDD because it isn't there!")
+    }
+}
+
+function vector hddRead(Index:number)
+{
+    if (HDD) {
+        #Read Data
+        ArrayOutput= HDD["Memory", array]
+        
+        #Return Vector
+        return ArrayOutput[Index, vector]
+    } else {
+        print("Cannot Read HDD because it isn't there!")
+    }
+}
+
+function hddUndo()
+{
+    if (HDD) {
+        #Update Current Array Information
+        ArrayInput= HDD["Memory", array]
+        
+        # Print Information
+        print("Size#"+(ArrayInput[0, number]-1)+"-Trash<<"+ArrayInput[ArrayInput[0, number]-1, vector])
+        
+        #Undo An Array
+        ArrayInput[0, number] =  ArrayInput[0, number] -1
+        
+        # Write
+        HDD["AllowWrite", number]= 0
+        HDD["AllowWrite", number]= 1
+        HDD["Data", array]= ArrayInput
+    } else {
+        print("Cannot Read HDD because it isn't there!")
+    }
+}
+
+#First Run
+if (first())
+{
+    if(!hddSize()) {hddWrite(entity():pos())} #Check if any Data on it..
+    else {print("This HDD has data on it! Will countinue to write on it.")}
+    #Prints Command
+    print("'"+KeywordCur+"' will tell you the current array size used in the database.")
+    print("'"+KeywordAdd+"' lets you add a vector into the database.")
+    print("'"+KeywordUndo+"' undo the last add in the database.")
+    print("'"+KeywordHolo+"' display hologram of the locations that was stored in the database.")
+    
+}
+
+#User Commands
+if(chatClk(User)&!Permanently) 
+{
+    switch (UserSaid) {
+        case KeywordCur, #Database Size
+            print("Size#"+hddSize()) #Print Size
+            HideChat= 1 #Justs Hide the chat if its a command
+            break
+        case KeywordAdd, #Add Database
+            hddWrite(AimPos)
+            HideChat= 1 #Justs Hide the chat if its a command
+            break
+        case KeywordUndo,#Undo Database
+            holoDelete(hddSize()) #Deletes Hologram
+            if(hddSize()) {hddUndo()} #don't go negative
+            else {print("Error cannot undo further!")}
+            HideChat= 1 #Justs Hide the chat if its a command
+            break
+        case KeywordHolo,#Hologram Database
+            if(HoloMapping>0) {HoloMapping= 0} #Increment Toggle
+            else {HoloMapping++}
+            if(HoloMapping) {print("Hologram Mapping On!")}
+            else {print("Hologram Mapping Off!")}
+            Skim= 1 #Resets Skim (Starts at 1)
+            HideChat= 1 #Justs Hide the chat if its a command
+            break
+        case KeywordPermanently,#Disables Users Command
+            Permanently= 1
+            HideChat= 1
+            entity():setColor(vec(225,0,0)) # Set Entity Color Red When Disabled
+            print("GoodBye! User Commands are now disabled permanently!")
+            break
+        default,
+            break
+    }
+    hideChat(HideChat) #Hide Chat
+    HideChat= 0 # Resets Hide Chat
+}
+
+#hologram mapping
+if (HoloMapping)
+{
+    if(Skim>=hddSize()) {Skim= 1} #Look Skim within hddSize
+    else {Skim++}
+    holoCreate(Skim)
+    holoModel(Skim, "pyramid")
+    holoAng(Skim, ang(0, 0, 0))
+    ArrayOutput= HDD["Memory", array]
+    holoPos(Skim, ArrayOutput[Skim, vector])
+}
+else {holoDeleteAll()} #Deltes All
+
+#Output Data Information to Something
+if (HDD)
+{
+    Vector= hddRead(DataIndex) # Read
+    Size= hddSize() #Get Size 
+}
+
+#################################################
+################ EDIT LOG #######################
+# Dec 18, 2014 - Add Permanently Disable Users Commands & Dup-proof
+

@@ -1,0 +1,50 @@
+@name Landmine Blinder v4.0
+@persist Cycle
+#Created 3/1/2014
+#Last Edit 3/1/2014
+
+while(perf()) {
+    Base= entity()
+    Range= 100 #Max Range of the landmines
+    Amount= 10 #How many landmines
+    ArmMessage= "arming"
+    DefuseMessage= "defuse"
+    
+    
+    if(first()) {
+        for(Create= 0, Amount) {
+            holoCreate(Create)
+            holoScale(Create, vec(1,1,1)*0.1)
+            holoModel(Create, "hq_hdome")
+            holoDisableShading(Create, 0)
+            RandomVec= vec(random(-Range,Range),random(-Range,Range),0)+Base:pos()
+            holoPos(Create, RandomVec)
+        }   
+    }
+    
+    
+    if (lastSpoke()==owner()&chatClk()) {
+        # Detect arming it
+        if (lastSaid():sub(0,ArmMessage:length()):lower()==ArmMessage) {
+            Arm= 1
+            hint("Landmine Armed!", 10)
+        }
+        # Detect Defusing it
+        if (lastSaid():sub(0,DefuseMessage:length()):lower()==DefuseMessage) {
+            hint("Landmine Defused!", 10)
+            timer("Done",2000)
+            soundPlay(3,0,"phx/kaboom.wav")
+            Attack= 1
+        }
+        
+    }
+    
+    findByClass("player")
+    Target= findClosest(holoEntity(Cycle):pos())
+    
+    if(Attack)
+    
+    
+    if(Cycle>Amount) {Cycle= 0} else {Cycle++}
+
+}

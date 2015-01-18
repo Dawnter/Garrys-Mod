@@ -1,0 +1,105 @@
+@name User Destiny Grabber r0
+#Made on December 17, 2014
+#Requires Position Database
+@inputs [User Database]:wirelink
+@persist Skim MoveAround HideChat TargetPos:vector Permanently
+interval(0)
+runOnTick(0)
+runOnChat(1)
+
+#Library
+##include "Lib/Dupe_Proof_Lib"
+
+KeywordSkim= "!enable"
+KeywordPermanently= "!freeze"
+Host= owner()
+HostSaid= Host:lastSaid():lower() #Last Said Read
+
+if(first())
+{
+    timer("NextMove", 1000)
+    Skim= 1
+    
+}
+function vector readData(Index)
+{
+    #Read Index
+    Database["DataIndex", number]= Index
+    return Database["Vector", vector]
+}
+
+#User Commands
+if(chatClk(Host)&!Permanently) 
+{
+    switch (HostSaid) {
+        case KeywordSkim,
+            if(MoveAround>0) {MoveAround= 0} #Increment Toggle
+            else {MoveAround++}
+            if(MoveAround) {print("Grabber is On!")}
+            else {print("Grabber is Off!")}
+            HideChat= 1
+            break
+        case KeywordPermanently, 
+            Permanently= 1
+            HideChat= 1
+            entity():setColor(vec(225,0,0)) # Set Entity Color Red When Disabled
+            print("GoodBye! User Commands are now disabled permanently!")
+            break
+    }
+    hideChat(HideChat) #Hide Chat
+    HideChat= 0 # Resets Hide Chat
+}
+
+#Get Index Size
+Size= Database["Size", number]
+
+
+#Skim threw
+if(clk("NextMove")) 
+{
+    if(MoveAround) #Enable/Disable Skimming
+    {
+        #Skim Increments
+        if (Skim>=Size) {Skim= 1}
+        else {Skim++}
+        #Gets Target
+        TargetPos= readData(Skim)
+        #Create Holo
+        holoCreate(0)
+    } 
+    else 
+    {
+        # If not On. Go back to E2
+        TargetPos= entity():pos()
+        # Delete Holo
+        holoDelete(0)
+    }
+    stoptimer("NextMove")
+    timer("NextMove", 2000)
+}
+
+#Hologram Location
+holoModel(0, "sphere3")
+holoAng(0, ang(0, 0, 0))
+holoPos(0, TargetPos)
+
+# Apply Force Stuff
+Object= User:entity()
+CurrentPos= Object:pos()
+Mul= 5
+Velocity= Object:vel()
+Mass= Object:mass()/2 # Divide Half Less Shaking
+Vec= (((TargetPos+vec(0,0,50))-CurrentPos)*Mul-Velocity)*Mass
+TargetAngle= ang(0,0,0)
+CurrAngle= Object:angles()
+Angle= Object:angles():setYaw(180)
+Inertia= shiftL(ang(Object:inertia()))
+Object:applyForce(Vec)
+Object:applyAngForce((-Angle*25 - Object:angVel()*2)*Inertia)
+
+# User grab
+User["Fire", number]= clk()*MoveAround
+
+#################################################
+################ EDIT LOG #######################
+# Dec 18, 2014 - Add Permanently Disable Users Commands & Dup-proof

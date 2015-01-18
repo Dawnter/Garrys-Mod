@@ -1,0 +1,132 @@
+@name Landmine Blinder v2.1 123L
+@persist Target:entity Triggered Explosion Attack Arm
+#Last Edit: January 16, 2014
+#Made By Dark_Gunner
+interval(1)
+runOnTick(1)
+runOnChat(1)
+
+# Timeout for E2 Disappears
+Timeout= 10
+ArmMessage= "arming"
+DefuseMessage= "defuse"
+
+if (lastSpoke()==owner()&chatClk()) {
+    # Detect arming it
+    if (lastSaid():sub(0,ArmMessage:length()):lower()==ArmMessage) {
+        Arm= 1
+        hint("Landmine Armed!", 10)
+    }
+    # Detect Defusing it
+    if (lastSaid():sub(0,DefuseMessage:length()):lower()==DefuseMessage) {
+        hint("Landmine Defused!", 10)
+        timer("Done",2000)
+        soundPlay(3,0,"phx/kaboom.wav")
+        Attack= 1
+    }
+        
+}
+
+# Arming Bomb
+if (Arm) {
+    Ranger= ranger(100)
+    if (Ranger:entity():isPlayer()) 
+    {Target= Ranger:entity()}
+    
+    findByClass("player")
+    Attacker= findClosest(entity():pos())
+    
+    holoDelete(0)
+}
+
+#first
+if (first()) {
+    holoCreate(0)
+    holoModel(0, "hq_dome")
+    holoScale(0, vec(1,1,1)*0.3)
+    holoColor(0, vec())
+}
+holoPos(0, entity():pos())
+
+
+#Finds Target 
+if (Target) {
+    # One Call 
+    if (!Triggered) {
+        holoDelete(0)
+        soundPlay(1,0,"phx/explode00.wav")
+        timer("Fiddle", 1000)
+        timer("End", (1000*Timeout)-1000)
+        timer("Done", 1000*Timeout)
+        Triggered= 1
+    }
+    if (clk("Fiddle")) 
+    {soundPlay(2,0,"common/bugreporter_failed.wav")}
+    if (clk("End")) 
+    {soundPlay(0,0,"common/stuck2.wav")}
+    
+    # Blinding effect
+    holoCreate(1)
+    if (!Target:isCrouch()) {Crouch= vec(0,0,30)}
+    else {Crouch= vec(0,0,0)}
+    holoPos(1, Target:pos()+Crouch)
+    holoParent(1, Target:weapon())
+    holoScale(1, vec(1,1,1)*-5)
+    holoColor(1, vec())
+    
+    
+    # Explosion Effect
+    if(Explosion<10) {
+        Explosion+=0.1
+        holoCreate(2)
+        holoModel(2, "hq_hdome_thin")
+        holoScale(2, vec(1,1,0.8)*Explosion)
+        holoMaterial(2, "models/props_lab/cornerunit_cloud")
+        
+        holoCreate(3)
+        holoModel(3, "hq_torus")
+        holoScale(3, vec(2,2,1)*Explosion)
+        holoMaterial(3, "phoenix_storms/pack2/redlight")
+        
+        holoCreate(4)
+        holoModel(4, "hq_hdome_thin")
+        holoScale(4, vec(1,1,0.1)*Explosion)
+        holoMaterial(4, "models/props_debris/concretefloor020a")
+    }
+    else {holoDelete(2), holoDelete(3)}
+    
+    Arm= 0
+}
+# If E2 Was Defused By Attacking it
+elseif (Attacker:aimEntity()==entity()&Attacker:keyAttack1()) {
+    if (Attacker:pos():distance(entity():pos())<100&!Attack) {
+        timer("Done",2000)
+        soundPlay(3,0,"phx/kaboom.wav")
+        Attack= 1
+    }
+}
+elseif (Attack) {
+    Attack+= 0.01
+    holoCreate(4)
+    holoModel(4, "hq_hdome_thin")
+    holoScale(4, vec(0.5,0.5,0.1)*Attack)
+    holoColor(4, vec())
+}
+
+if (clk("Done")) {
+    selfDestruct()
+}
+if (duped()) {
+    selfDestruct()
+    hint("Forbidden Dup!",10)
+}
+
+entity():setAlpha(0)
+
+###################################################
+# Update Log
+# Janurary 16, 2014     Created v1.0 72L
+# Janurary 16, 2014     Changed to RolePlay purpose v2.0 90L
+# Janurary 16, 2014     Added Commands+SoundEffects+Arming/Defuse v2.0 123L
+# Feburary 3, 2014      Fixed The Hologram Refresh Rate 2.1v 124L
+####################################################

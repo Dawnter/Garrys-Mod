@@ -1,0 +1,159 @@
+@name Flag Hogging v1.5
+@inputs CS:wirelink
+@persist [Target Leader]:entity FlagPos:vector Spin Expand RandomFlagBackGround
+#Created by Dark_Gunner
+#Created: ???
+#Last Edit: 2/18/2014
+
+#Library
+#include "Lib/Dupe_Proof_Lib"
+#include "Lib/Internal_Clock_Lib"
+
+
+
+findIncludeClass("player")
+findInSphere(entity():pos(), 1000000)
+Target =findClosest(FlagPos)
+
+ScoreName= gTable("Dark_Gunner Scoreboard Name")
+ScoreNum= gTable("Dark_Gunner Scoreboard Number")
+
+if(first()) {
+    Spin= -360
+    RandomFlagBackGround= round(random(1,14))
+}
+
+
+#Scoring System
+function score(Player:entity) {
+    for(Scan= 0, ScoreName:count()+1) {
+        if(ScoreName[Scan, entity]==Player) {
+            ScoreNum[Scan, number]= ScoreNum[Scan, number] +1
+            #hint("Added Player: "+ScoreName[Scan, entity]:name()+" #"+ScoreNum[Scan, number], 10)
+            return
+        }
+        if(Scan>ScoreName:count()) {
+            ScoreName[Scan, entity]= Player
+            ScoreNum[Scan, number]= ScoreNum[Scan, number] +1
+            #hint("Created Player: "+ScoreName[Scan, entity]:name()+" #"+ScoreNum[Scan, number], 10)
+            return
+        }
+    }
+}
+
+#Score Board
+if(clk("Tick")) {
+CS:writeString("SCOREBOARD              Score",0,0)
+    for(Scan= 1, 17) {
+        CS:writeString(" ":repeat(30),0,Scan)
+        if(ScoreName[Scan, entity]) {
+            CS:writeString(".":repeat(20)+ScoreNum[Scan, number],5,Scan)
+            CS:writeString(Scan+"--"+ScoreName[Scan, entity]:name():sub(0,15),0,Scan)
+    
+        }
+        else {
+            CS:writeString(Scan+"--Nobody!",0,Scan)
+        }
+    }
+}
+
+#Flag Itself
+function flagmodel(PickUp:entity) {
+    if(!FlagPos) {FlagPos= entity():pos()}
+    Spin+=3
+    holoCreate(0)
+    holoAng(0, ang(0,Spin,0)+entity():angles())
+    holoPos(0, FlagPos)
+    holoDisableShading(0, 1)
+    
+    holoCreate(1)
+    holoPos(1, FlagPos+vec(0,0,50))
+    holoModel(1, "hq_cylinder")
+    holoScale(1, vec(0.2,0.2,10))
+    holoAng(1, ang(10,0,0))
+    holoParent(1, holoEntity(0))
+    
+    holoCreate(2)
+    holoPos(2, FlagPos+vec(-23,0,95))
+    holoScale(2, vec(5,0.01,3))
+    holoAng(2, ang(10,0,0))
+    holoParent(2, holoEntity(0))
+    holoDisableShading(2, 1)
+    if(RandomFlagBackGround==1) {holoMaterial(2, "matsys_regressiontest/background")}
+    elseif(RandomFlagBackGround==2) {holoMaterial(2, "perftest/gman/gman_face2")}
+    elseif(RandomFlagBackGround==3) {holoMaterial(2, "phoenix_storms/lag_sign")}
+    elseif(RandomFlagBackGround==4) {holoMaterial(2, "models/props/cs_office/offinspa")}
+    elseif(RandomFlagBackGround==5) {holoMaterial(2, "models/props/cs_office/offinspb")}
+    elseif(RandomFlagBackGround==6) {holoMaterial(2, "models/props/cs_office/offinspc")}
+    elseif(RandomFlagBackGround==7) {holoMaterial(2, "models/props/cs_office/offinspd")}
+    elseif(RandomFlagBackGround==8) {holoMaterial(2, "models/props/cs_office/offinspf")}
+    elseif(RandomFlagBackGround==9) {holoMaterial(2, "models/props/cs_office/offinspg")}
+    elseif(RandomFlagBackGround==10) {holoMaterial(2, "models/props/cs_assault/dollar")}
+    elseif(RandomFlagBackGround==11) {holoMaterial(2, "models/props/cs_assault/moneytop")}
+    elseif(RandomFlagBackGround==12) {holoMaterial(2, "models/props_c17/paper01")}
+    elseif(RandomFlagBackGround==13) {holoMaterial(2, "models/props_combine/combine_interface_disp")}
+    elseif(RandomFlagBackGround==14) {holoMaterial(2, "models/props_lab/generatorconsole_disp")}
+    
+    
+    
+    if(PickUp) {
+        FlagPos= PickUp:pos()
+        holoParent(0, PickUp)
+        
+        #Scoring
+        if(clk("Tick")) {score(Leader)}
+        
+        
+        
+        holoCreate(3)
+        holoPos(3, FlagPos+vec(0,0,0))
+        holoModel(3, "hq_torus")
+        holoScale(3, vec(Expand,Expand,0.2*Expand))
+        holoDisableShading(3, 1)
+        if (Expand<80) {Expand++} else {
+            Expand= 0 
+            holoEntity(1):soundPlay(3,0,"misc/doomsday_lift_warning.wav")
+            timer("StopSound3",1000)
+        }
+        if (clk("StopSound3")) {soundStop(3)}
+    }
+    else {
+        holoUnparent(0)
+        holoDelete(3)
+    }
+    
+    
+}
+
+
+#Pick Up
+if(Target:keyUse()&Target:pos():distance2(FlagPos)<1000&!Leader&!Target:keySprint()) {
+    Leader= Target 
+    #hint("PickedUp!",10)
+    holoEntity(1):soundPlay(0,0,"player/invulnerable_on.wav")
+    holoEntity(1):soundPlay(5,0,"music/fortress_reel.wav")
+    holoEntity(1):soundPlay(4,0,"vo/announcer_defend_intel.wav")
+    timer("StopSound0",10000)
+}
+if(clk("StopSound0")) {soundStop(0), soundStop(4), soundStop(5)}
+
+
+if(Leader:vehicle()|Leader:keyAttack2()) {
+    Leader= noentity() 
+    #hint("Dropped!",10)
+    holoEntity(1):soundPlay(1,0,"misc/tf_nemesis.wav")
+    timer("StopSound1",2000)
+}
+if(clk("StopSound1")) {soundStop(1)}
+
+
+if((!Leader:isAlive()&Leader)) {
+    Leader= noentity() 
+    #hint("Died!",10)
+    timer("PlaySound2",1000)
+}
+if(clk("PlaySound2")) {holoEntity(1):soundPlay(2,0,"ui/halloween_boss_defeated.wav"), timer("StopSound2",7000)}
+if(clk("StopSound2")) {soundStop(2)}
+
+flagmodel(Leader)
+

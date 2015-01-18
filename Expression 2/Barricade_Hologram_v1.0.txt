@@ -1,0 +1,120 @@
+@name Barricade Hologram v1.2 112L
+@persist POINTDATA:array KeyChange PosSection PointCount InternalClock Spawn PointColor:vector KeyChange1
+interval(50)
+runOnChat(1)
+#Last Edit: Feburary 8, 2014
+#Created: Janurary 17, 2014
+#Made By Dark_Gunner
+
+#include "Lib/Dupe_Proof_Lib"
+
+User= owner()
+Height= 15
+DestroyCommand= "barricade"
+
+if (first()) {
+    print(InternalClock+"# RightClick+E for Spawning Points")
+    print(InternalClock+"# RightClick+R for All Delete Barricades")
+    timer("TickA", 1000)
+}
+
+#Pulse Clock
+if (clk("TickA")) {
+    InternalClock++
+    entity():setColor(0,255,0)
+    timer("TickB", 1000)
+}
+if (clk("TickB")) {
+    entity():setColor(vec())
+    timer("TickA", 1000)
+}
+
+#Destroy E2 Command
+if (DestroyCommand==lastSaid():sub(0,DestroyCommand:length()):lower()&chatClk(User)) {
+    timer("Destroy",1000)
+}
+
+#Pointing a Barricade Pos
+if (User:keyAttack2()&User:keyUse()&!KeyChange) {
+    PosSection++ # POINT 1 & POINT 2 & POINT 3
+    PointCount++ # COUNT HOW MANY POINTS SPAWNED
+    POINTDATA[PointCount,vector]= User:aimPos()
+    print(InternalClock+"# Set Point "+round(POINTDATA[PointCount,vector]))
+    if (PosSection==1) {print(InternalClock+"# Please Set Second Point")}
+    elseif(PosSection==2) {print(InternalClock+"# Please Set Which Side")}
+    elseif(PosSection==3) {print(InternalClock+"# Barricade Spawned!")}
+    holoCreate(PointCount) # Show the Points
+    holoColor(PointCount, PointColor)
+    holoModel(PointCount, "hq_cone")
+    holoPos(PointCount, POINTDATA[PointCount,vector])
+    if (PosSection>=3) {PosSection= 0, Spawn= 1, PointColor= vec(random(0,255),random(0,255),random(0,255))}
+    KeyChange= 1 # PREVENT LOOP
+}
+else {KeyChange= User:keyUse()}
+
+#Deleting All Barricades
+if (User:keyReload()&User:keyAttack2()&!KeyChange1) {
+    while(PointCount) {
+        PointCount--
+        holoDelete(PointCount+1)
+    }
+    print(InternalClock+"# Deleted All Barricades!")
+    KeyChange1= 1
+}
+else {KeyChange1= User:keyReload()}
+
+#Execute SPawning
+Pos1= POINTDATA[PointCount-2,vector]
+Pos2= POINTDATA[PointCount-1,vector]
+Pos3= POINTDATA[PointCount,vector]
+
+CenterPos= ((Pos2-Pos1)/2)+Pos1
+
+Bearing= -bearing(Pos1, ang(), Pos2)
+Elevation= -elevation(Pos1, ang(), Pos2)
+
+HoloAng= ang(Elevation, Bearing+180, 0)
+Length= Pos1:distance(Pos2)
+
+
+if (Spawn) { # Spawns the Actual Barricade
+    #FRONT SIDE
+    holoCreate(PointCount)
+    holoPos(PointCount, CenterPos)
+    holoScale(PointCount, vec(Length/12,Height,1))
+    holoAng(PointCount, HoloAng+ang(0,0,90))
+    holoModel(PointCount, "plane")
+    holoColor(PointCount, vec())
+    
+    #BACK SIDE OUTLINE 
+    PointCount++
+    holoCreate(PointCount)
+    holoPos(PointCount, CenterPos)
+    holoScale(PointCount, vec(Length/12,Height,1))
+    holoAng(PointCount, HoloAng+ang(0,180,90))
+    holoModel(PointCount, "plane")
+    holoMaterial(PointCount, "models/vortigaunt/pupil")
+    
+    #SEE THREW BAR
+    PointCount++
+    holoCreate(PointCount)
+    holoPos(PointCount, CenterPos+vec(0,0,30))
+    holoScale(PointCount, vec(Length/12,Height/20,1))
+    holoAng(PointCount, HoloAng+ang(0,180,90))
+    holoModel(PointCount, "plane")
+    holoMaterial(PointCount, "models/props_combine/tprings_globe")
+    Spawn= 0
+}
+
+
+# Destroy
+if (duped()|clk("Destroy")) {
+    if (duped()) {hint("forbidden dup!", 10)}
+    print(InternalClock+"# Deleted!")
+    selfDestruct()
+}
+
+
+
+
+

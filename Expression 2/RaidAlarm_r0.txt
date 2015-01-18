@@ -1,0 +1,91 @@
+@name Raid Alarm r0
+#Made on December 22, 2014
+@outputs BlinkLight:vector
+@persist HackLogRow ChatScan RaidVerifyScan HackLogs:array InternalClockTick InternalClockA:string TrueRaid
+interval(1)
+runOnTick(1)
+runOnChat(1)
+perf()
+
+#Library
+#include "Lib/Internal_Clock_Lib"
+
+RaidTimeoutMin= 1 # How long till raid is timed out
+
+if (clk("Tick"))  #Internal Clock
+{
+    if (InternalClockTick < 10000000) {InternalClockTick++}
+    if (InternalClockTick < 10) {InternalClockA="0000"+(InternalClockTick:toString())}
+    elseif (InternalClockTick < 100) {InternalClockA="000"+InternalClockTick:toString()}
+    elseif (InternalClockTick < 1000) {InternalClockA="00"+InternalClockTick:toString()}
+    elseif (InternalClockTick < 10000) {InternalClockA="0"+InternalClockTick:toString()}
+    elseif (InternalClockTick < 100000) {InternalClockA=InternalClockTick:toString()}
+    elseif (InternalClockTick < 1000000) {InternalClockA="Error"}
+}
+
+# Raid Blinking
+if(clk("TickA")&TrueRaid) {BlinkLight= vec(255,0,0)}
+if(clk("TickB")&TrueRaid) {BlinkLight= vec(0,0,0)}
+
+findByClass("player")
+PlayerTarget= findClosest(entity():pos())
+
+#Legal Raid Advert... Detection
+if (lastSaid():length()<50) {
+    while (ChatScan<lastSaid():length()&lastSaid():sub(0,6):lower()=="/advert":sub(0,6):lower()) {
+        ChatScan++
+        if (lastSaid():sub(ChatScan,ChatScan+3):lower()=="raid":lower()&chatClk()) {
+            HackLogs[HackLogRow,string] = InternalClockA+"# Raider: "+lastSpoke():steamID()
+            print(HackLogs[HackLogRow,string])
+            HackLogRow++
+            ChatScan=lastSaid():length()+1
+        }
+    }
+}
+if (ChatScan&chatClk()) {ChatScan=0}
+#Scan For Expire Raids
+if (HackLogs[RaidVerifyScan,string]:sub(8,14)=="Raider:"&HackLogs[RaidVerifyScan,string]:sub(1,5):toNumber()+(60*RaidTimeoutMin)<InternalClockTick) {
+    HackLogs[RaidVerifyScan,string] = InternalClockA+"# Expire: "+HackLogs[RaidVerifyScan,string]:sub(22,HackLogs[RaidVerifyScan,string]:length())
+    TrueRaid= 0
+    soundStop(0)
+    soundStop(1)
+    stoptimer("RaidAlarm")
+    holoDelete(RaidVerifyScan)
+    print(HackLogs[RaidVerifyScan,string])
+    entity():setColor(vec(255, 255, 255))
+}
+
+#Raid Scan Detector
+#Look at whose raiding
+if (HackLogs[RaidVerifyScan,string]:sub(8,14)=="Raider:"
+   &HackLogs[RaidVerifyScan,string]:sub(16,HackLogs[RaidVerifyScan,string]:length())==PlayerTarget:steamID()
+   &PlayerTarget:pos():distance(entity():pos())<1000) # if nearby
+{
+    holoCreate(RaidVerifyScan)
+    holoPos(RaidVerifyScan, PlayerTarget:pos())
+    holoAng(RaidVerifyScan, ang())
+    holoScale(RaidVerifyScan, vec(3,3,1))
+    holoColor(RaidVerifyScan, vec(255,0,0))
+    holoDisableShading(RaidVerifyScan, 1)
+    holoModel(RaidVerifyScan, "plane")
+    if(!TrueRaid) # Trigger Once
+    {
+        entity():setColor(vec(0, 0, 255))
+        print(InternalClockA+"# Current Raider: "+PlayerTarget:name()+" distance of "+round(PlayerTarget:pos():distance(entity():pos()))+" inches.")
+        timer("RaidAlarm", 0)
+        TrueRaid= 1
+    }
+}
+
+# Scann
+if (RaidVerifyScan<HackLogRow) {RaidVerifyScan++} else {RaidVerifyScan=0}
+
+#Sound Alarm
+if(clk("RaidAlarm")) 
+{
+    timer("RaidAlarm", 13000)
+    soundStop(0)
+    soundStop(1)
+    soundPlay(0, 0, "air-raid.wav")
+    soundPlay(1, 0, "ambient/alarms/alarm1.wav")
+}

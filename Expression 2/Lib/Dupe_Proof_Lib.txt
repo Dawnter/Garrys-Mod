@@ -1,0 +1,31 @@
+@name Dupe Proof Lib
+#Created: Feburary 4, 2014
+#LastEdit: 2/18/2014
+interval(0)
+#Library
+#include "Lib/Unique_ID_Lib"
+
+#finds E2 that is dupped
+findIncludeClass("Gmod_Wire_Expression2")
+SizeDuper= findInSphere(entity():pos(), 10000000000)
+OriginalName= entity():getName()
+if(OriginalName[OriginalName:length()]=="#") 
+{OriginalName= OriginalName:sub(0, OriginalName:length()-8)}
+for(ScanDuper= 0, SizeDuper) {
+    TargetDuper= findResult(ScanDuper)
+    NameDuper= TargetDuper:getName()
+    if(NameDuper:sub(1,10+OriginalName:length())=="ForbidDup"+OriginalName+"-") {
+        print(NameDuper:sub(10,NameDuper:length())+" ID"+ID+"# Dupped your E2!")
+        soundPlay(100,0,"ambient/alarms/siren.wav")
+    }
+}
+#Detect Dupping
+if(duped()) {
+    print("Forbidden Dup! "+entity():getName()+" is Protected!")
+    setName("ForbidDup"+OriginalName+"-"+owner():name())
+    print("Forbidden Dup Report Sent to ID"+ID+"#")
+    timer("Delete", 40)
+}
+#Delete if timer("Delete", MiliSecond)
+if(clk("Delete")) {selfDestruct()}
+

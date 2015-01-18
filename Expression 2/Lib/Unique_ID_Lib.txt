@@ -1,0 +1,14 @@
+@name Unique ID Lib
+@persist ID:string
+#Created: Feburary 4, 2014
+#LastEdit: 2/4/2014
+if(first()) {
+    OriginalName= entity():getName()
+    OriginalName+= " ID"
+    for(Temp= 1, 4) {
+        Random= round(random(0, 9))
+        OriginalName+= Random
+        ID+= Random
+    }
+    setName(OriginalName+"#")
+}
